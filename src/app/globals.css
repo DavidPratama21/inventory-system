@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-brandbg text-navy antialiased;
+}
+
+input,
+select {
+  @apply rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors;
+}
+input:focus,
+select:focus {
+  @apply border-amber ring-2 ring-amber/20;
+}
+input[type="checkbox"] {
+  @apply w-auto rounded-md border p-0;
+}
+
+button {
+  @apply rounded-lg px-3 py-2 text-sm font-semibold transition-all;
+}
+button:not(:disabled):hover {
+  @apply brightness-95;
+}
+button:disabled {
+  @apply cursor-not-allowed;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-100 bg-white shadow-sm;
+}
+
+table thead th {
+  @apply select-none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

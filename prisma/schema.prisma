@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TipeAktivitas {
+  MASUK
+  KELUAR
+  RUSAK
+  RETUR
+  PENYESUAIAN
+}
+
+enum KondisiRetur {
+  OKE // barang balik ke stok
+  RUSAK // barang tidak balik ke stok
+}
+
+enum AksiAudit {
+  TAMBAH
+  EDIT
+  NONAKTIFKAN
+  AKTIFKAN
+  HAPUS
+}
+
+model Barang {
+  id        Int      @id @default(autoincrement())
+  kode      String   @unique
+  nama      String
+  kategori  String? // disembunyikan dari UI dulu, kolom disiapkan untuk nanti
+  stokMin   Int? // opsional -- kosong berarti tidak ada reminder stok menipis
+  aktif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  aktivitas Aktivitas[]
+  auditLogs BarangAuditLog[]
+
+  // Stok TIDAK disimpan di sini -- selalu dihitung dari total Aktivitas.
+  // Satuan tidak disimpan sebagai kolom -- seluruh sistem berasumsi "pcs".
+}
+
+model Aktivitas {
+  id       Int     @id @default(autoincrement())
+  barangId Int? // null kalau barangnya sudah dihapus permanen
+  barang   Barang? @relation(fields: [barangId], references: [id], onDelete: SetNull)
+
+  // Snapshot -- hanya terisi otomatis saat barang dihapus permanen,
+  // supaya baris ini tetap terbaca walau relasinya putus.
+  barangKodeSnap String?
+  barangNamaSnap String?
+
+  tipe         TipeAktivitas
+  qty          Int // selalu positif, KECUALI tipe PENYESUAIAN (boleh negatif)
+  kondisiRetur KondisiRetur? // hanya diisi kalau tipe = RETUR
+
+  keterangan String? // termasuk No. Job Order, digabung jadi satu field
+
+  tanggalKejadian DateTime // tanggal aktual kejadian, bisa beda dari createdAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  auditLogs AktivitasAuditLog[]
+
+  @@index([barangId])
+  @@index([tanggalKejadian])
+}
+
+model BarangAuditLog {
+  id             Int     @id @default(autoincrement())
+  barangId       Int?
+  barang         Barang? @relation(fields: [barangId], references: [id], onDelete: SetNull)
+  barangKodeSnap String
+  barangNamaSnap String
+
+  aksi           AksiAudit
+  dataLama       Json? // null kalau aksi = TAMBAH
+  dataBaru       Json? // null kalau aksi = HAPUS
+  waktuPerubahan DateTime  @default(now())
+
+  @@index([waktuPerubahan])
+}
+
+model AktivitasAuditLog {
+  id             Int        @id @default(autoincrement())
+  aktivitasId    Int?
+  aktivitas      Aktivitas? @relation(fields: [aktivitasId], references: [id], onDelete: SetNull)
+  barangNamaSnap String
+
+  aksi           AksiAudit // EDIT atau HAPUS
+  dataLama       Json
+  dataBaru       Json? // null kalau aksi = HAPUS
+  waktuPerubahan DateTime  @default(now())
+
+  @@index([waktuPerubahan])
+}
